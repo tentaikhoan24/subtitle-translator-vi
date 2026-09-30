@@ -87,6 +87,7 @@
   // anchorEl = vùng video mà box phủ lên. Thường chính là phần tử cha của box,
   // riêng <wistia-player> (shadow DOM) thì box nằm ở cha nhưng canh theo player.
   let anchorEl = null;
+  let normalPlayerHeight = 0; // chiều cao player lúc xem thường, để tính tỉ lệ khi fullscreen
 
   // document.fullscreenElement bị "retarget" về shadow host (vd <wistia-player>);
   // đi xuyên shadow DOM tới phần tử fullscreen thật để box được render
@@ -158,7 +159,12 @@
       updateBoxStyle();
     }
   }
-  document.addEventListener("fullscreenchange", attachToPlayer);
+  document.addEventListener("fullscreenchange", () => {
+    attachToPlayer();
+    updateBoxStyle();
+  });
+  // Kích thước player chỉ ổn định sau khi vào/ra fullscreen xong → tính lại cỡ chữ
+  window.addEventListener("resize", () => updateBoxStyle());
 
   // Gắn vào body → dùng fixed theo viewport; gắn vào player → absolute theo player
   function isInPlayer() {
@@ -178,6 +184,18 @@
     const op = parseFloat(config.bgOpacity);
     const opacity = isNaN(op) ? 0.85 : op > 1 ? op / 100 : op;
 
+    // Phóng chữ khi fullscreen theo tỉ lệ chiều cao player so với lúc xem thường,
+    // để phụ đề giữ cùng tỉ lệ với video (giới hạn 1x–3x)
+    const playerH = containerRect().height;
+    if (!isFullscreen && isInPlayer() && playerH > 0) normalPlayerHeight = playerH;
+    const scale = isFullscreen
+      ? Math.min(3, Math.max(1, playerH / (normalPlayerHeight || 360)))
+      : 1;
+    const fontSize = Math.round(parseFloat(config.fontSize) * scale) || 16;
+
+    // Khoảng cách tới mép video, theo % chiều cao player (mặc định sát đáy)
+    const EDGE = 0.03;
+
     const parent = translationBox.parentElement;
     let pos;
     let maxWidth = "80%";
@@ -189,14 +207,15 @@
       const ax = ar.left - pr.left - parent.clientLeft;
       const ay = ar.top - pr.top - parent.clientTop;
       const cx = ax + (config.customPos ? config.customPos.x : 0.5) * ar.width;
+      const edge = ar.height * EDGE;
       maxWidth = `${ar.width * 0.8}px`;
 
       if (config.customPos) {
         pos = `left: ${cx}px; top: ${ay + config.customPos.y * ar.height}px; bottom: auto;`;
       } else if (config.boxPosition === "top") {
-        pos = `left: ${cx}px; top: ${ay + 40}px; bottom: auto;`;
+        pos = `left: ${cx}px; top: ${ay + edge}px; bottom: auto;`;
       } else {
-        pos = `left: ${cx}px; top: auto; bottom: ${parent.clientHeight - (ay + ar.height) + 80}px;`;
+        pos = `left: ${cx}px; top: auto; bottom: ${parent.clientHeight - (ay + ar.height) + edge}px;`;
       }
     } else if (config.customPos) {
       pos = `
@@ -206,13 +225,13 @@
     } else if (config.boxPosition === "top") {
       pos = `
         left: 50%;
-        top: ${isFullscreen ? "8%" : "40px"};
+        top: ${EDGE * 100}%;
         bottom: auto;`;
     } else {
       pos = `
         left: 50%;
         top: auto;
-        bottom: ${isFullscreen ? "10%" : "80px"};`;
+        bottom: ${EDGE * 100}%;`;
     }
 
     translationBox.style.cssText = `
@@ -220,7 +239,7 @@
       ${pos}
       transform: translateX(-50%);
       z-index: 2147483647;
-      font-size: ${config.fontSize}px;
+      font-size: ${fontSize}px;
       background: rgba(0,0,0,${opacity});
       color: white;
       padding: 6px 12px;
