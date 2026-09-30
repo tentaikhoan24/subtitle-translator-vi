@@ -1,0 +1,68 @@
+/* ── Subtitle Translator VI — Overlay Styles ── */
+
+#sttrans-box {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2147483647;
+  max-width: 90vw;
+  width: max-content;
+  text-align: center;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+#sttrans-box.sttrans-visible {
+  opacity: 1;
+}
+
+/* Giữ Shift → cho phép kéo box */
+#sttrans-box.sttrans-visible.sttrans-draggable {
+  pointer-events: auto;
+  cursor: move;
+  outline: 1px dashed rgba(255, 229, 102, 0.8);
+  outline-offset: 2px;
+}
+
+#sttrans-box .sttrans-orig {
+  display: inline-block;
+  background: rgba(0, 0, 0, 0.70);
+  color: #ffffff;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: inherit;
+  font-weight: 400;
+  padding: 3px 12px;
+  border-radius: 4px;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+  opacity: 0.75;
+}
+
+#sttrans-box .sttrans-sep {
+  color: #ffdd00;
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.8;
+}
+
+#sttrans-box .sttrans-vi {
+  display: inline-block;
+  background: rgba(15, 15, 15, 0.92);
+  color: #ffe566;
+  font-family: 'Segoe UI', 'Be Vietnam Pro', system-ui, sans-serif;
+  font-size: inherit;
+  font-weight: 600;
+  padding: 5px 16px;
+  border-radius: 6px;
+  line-height: 1.5;
+  border: 1px solid rgba(255, 220, 60, 0.3);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+  letter-spacing: 0.02em;
+}
+.jw-text-track-container { display: none !important; }

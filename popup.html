@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Subtitle Translator VI</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f12;
+      --surface: #1a1a22;
+      --border: #2e2e3d;
+      --accent: #ffe566;
+      --accent2: #a78bfa;
+      --text: #e8e8f0;
+      --muted: #7070a0;
+      --green: #4ade80;
+      --red: #f87171;
+    }
+
+    body {
+      width: 300px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+      font-size: 13px;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-icon {
+      width: 28px; height: 28px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+
+    .logo-text {
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .logo-sub {
+      font-size: 10px;
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    /* Toggle */
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .toggle-label {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .toggle {
+      position: relative;
+      width: 38px; height: 20px;
+    }
+
+    .toggle input { opacity: 0; width: 0; height: 0; }
+
+    .slider {
+      position: absolute; inset: 0;
+      background: #333355;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: 0.25s;
+    }
+
+    .slider::before {
+      content: '';
+      position: absolute;
+      width: 14px; height: 14px;
+      left: 3px; top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: 0.25s;
+    }
+
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #0f0f12; }
+
+    /* Body */
+    .body { padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; }
+
+    /* Section */
+    .section-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    /* Row */
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .row label {
+      font-size: 12px;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    /* Select */
+    select {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237070a0'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      padding-right: 24px;
+    }
+
+    select:focus { border-color: var(--accent); }
+
+    /* Slider range */
+    .slider-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .slider-row .row { margin-bottom: 0; }
+
+    .range-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 4px;
+      background: var(--border);
+      border-radius: 4px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px; height: 14px;
+      background: var(--accent);
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .range-val {
+      font-size: 11px;
+      color: var(--accent);
+      font-weight: 700;
+      width: 28px;
+      text-align: right;
+    }
+
+    /* Checkbox */
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .check-row input[type="checkbox"] {
+      accent-color: var(--accent);
+      width: 14px; height: 14px;
+      cursor: pointer;
+    }
+
+    .check-row span {
+      font-size: 12px;
+      color: var(--text);
+    }
+
+    .hint {
+      font-size: 10px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .hint b { color: var(--accent); font-weight: 600; }
+
+    /* Divider */
+    .divider {
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* Status */
+    .status-bar {
+      padding: 8px 16px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* Supported sites */
+    .sites {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .site-tag {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .site-tag.active {
+      border-color: var(--accent2);
+      color: var(--accent2);
+      background: rgba(167, 139, 250, 0.1);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">🌐</div>
+      <div>
+        <div class="logo-text">SubTrans VI</div>
+        <div class="logo-sub">Dịch phụ đề tự động</div>
+      </div>
+    </div>
+    <div class="toggle-wrap">
+      <span class="toggle-label" id="toggleLabel">BẬT</span>
+      <label class="toggle">
+        <input type="checkbox" id="enableToggle" checked />
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="body">
+
+    <!-- Ngôn ngữ đích -->
+    <div>
+      <div class="section-title">Ngôn ngữ đích</div>
+      <div class="row">
+        <label>Dịch sang</label>
+        <select id="targetLang">
+          <option value="vi">🇻🇳 Tiếng Việt</option>
+          <option value="en">🇺🇸 English</option>
+          <option value="zh-CN">🇨🇳 中文</option>
+          <option value="ja">🇯🇵 日本語</option>
+          <option value="ko">🇰🇷 한국어</option>
+          <option value="fr">🇫🇷 Français</option>
+          <option value="de">🇩🇪 Deutsch</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Hiển thị -->
+    <div>
+      <div class="section-title">Hiển thị</div>
+
+      <div class="slider-row" style="margin-bottom:10px">
+        <div class="row"><label>Cỡ chữ</label></div>
+        <div class="range-wrap">
+          <input type="range" id="fontSize" min="12" max="28" value="16" />
+          <span class="range-val" id="fontSizeVal">16px</span>
+        </div>
+      </div>
+
+      <div class="slider-row" style="margin-bottom:10px">
+        <div class="row"><label>Độ mờ nền</label></div>
+        <div class="range-wrap">
+          <input type="range" id="bgOpacity" min="0" max="100" value="85" />
+          <span class="range-val" id="bgOpacityVal">85%</span>
+        </div>
+      </div>
+
+      <div class="row" style="margin-bottom:4px">
+        <label>Vị trí</label>
+        <select id="boxPosition">
+          <option value="bottom">Dưới</option>
+          <option value="top">Trên</option>
+          <option value="custom" hidden>Tùy chỉnh (đã kéo)</option>
+        </select>
+      </div>
+      <div class="hint">Giữ <b>Shift</b> + kéo phụ đề dịch để di chuyển</div>
+
+      <label class="check-row">
+        <input type="checkbox" id="showOriginal" checked />
+        <span>Hiện phụ đề gốc</span>
+      </label>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Trang hỗ trợ -->
+    <div>
+      <div class="section-title">Hỗ trợ</div>
+      <div class="sites">
+        <span class="site-tag active">Anthropic Academy</span>
+        <span class="site-tag active">YouTube</span>
+        <span class="site-tag active">Vimeo</span>
+        <span class="site-tag active">Wistia</span>
+        <span class="site-tag">Coursera</span>
+        <span class="site-tag">Udemy</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="status-bar">
+    <div class="status-dot"></div>
+    <span id="statusText">Đang theo dõi phụ đề...</span>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
