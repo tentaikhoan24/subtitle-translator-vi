@@ -84,6 +84,10 @@
     return translationBox;
   }
 
+  // anchorEl = vùng video mà box phủ lên. Thường chính là phần tử cha của box,
+  // riêng <wistia-player> (shadow DOM) thì box nằm ở cha nhưng canh theo player.
+  let anchorEl = null;
+
   function getPlayerRoot() {
     if (document.fullscreenElement) return document.fullscreenElement;
 
@@ -101,10 +105,22 @@
     return document.body;
   }
 
+  const anchorObserver = new ResizeObserver(() => updateBoxStyle());
+
   function attachToPlayer() {
+    if (!translationBox) return;
     const root = getPlayerRoot();
-    if (translationBox && translationBox.parentElement !== root) {
+    const wp = root.querySelector(":scope > wistia-player");
+    const anchor = !document.fullscreenElement && wp ? wp : root;
+
+    if (translationBox.parentElement !== root || anchorEl !== anchor) {
       root.appendChild(translationBox);
+      anchorObserver.disconnect();
+      anchorEl = anchor;
+      if (anchor !== root) {
+        anchorObserver.observe(anchor);
+        anchorObserver.observe(root);
+      }
       updateBoxStyle();
     }
   }
@@ -116,7 +132,7 @@
   }
 
   function containerRect() {
-    if (isInPlayer()) return translationBox.parentElement.getBoundingClientRect();
+    if (isInPlayer()) return (anchorEl || translationBox.parentElement).getBoundingClientRect();
     return { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
   }
 
@@ -128,8 +144,27 @@
     const op = parseFloat(config.bgOpacity);
     const opacity = isNaN(op) ? 0.85 : op > 1 ? op / 100 : op;
 
+    const parent = translationBox.parentElement;
     let pos;
-    if (config.customPos) {
+    let maxWidth = "80%";
+
+    if (parent && anchorEl && anchorEl !== parent) {
+      // Box nằm trong cha nhưng canh theo anchor → đổi sang px theo vị trí anchor trong cha
+      const pr = parent.getBoundingClientRect();
+      const ar = anchorEl.getBoundingClientRect();
+      const ax = ar.left - pr.left - parent.clientLeft;
+      const ay = ar.top - pr.top - parent.clientTop;
+      const cx = ax + (config.customPos ? config.customPos.x : 0.5) * ar.width;
+      maxWidth = `${ar.width * 0.8}px`;
+
+      if (config.customPos) {
+        pos = `left: ${cx}px; top: ${ay + config.customPos.y * ar.height}px; bottom: auto;`;
+      } else if (config.boxPosition === "top") {
+        pos = `left: ${cx}px; top: ${ay + 40}px; bottom: auto;`;
+      } else {
+        pos = `left: ${cx}px; top: auto; bottom: ${parent.clientHeight - (ay + ar.height) + 80}px;`;
+      }
+    } else if (config.customPos) {
       pos = `
         left: ${config.customPos.x * 100}%;
         top: ${config.customPos.y * 100}%;
@@ -157,7 +192,7 @@
       padding: 6px 12px;
       border-radius: 6px;
       text-align: center;
-      max-width: 80%;
+      max-width: ${maxWidth};
     `;
   }
 
