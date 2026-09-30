@@ -85,12 +85,20 @@
   }
 
   function getPlayerRoot() {
-    return (
-      document.fullscreenElement ||
-      document.querySelector(".jwplayer") ||
-      document.querySelector("#movie_player") ||
-      document.body
-    );
+    if (document.fullscreenElement) return document.fullscreenElement;
+
+    const player = document.querySelector(".jwplayer, #movie_player, .w-vulcan-v2");
+    if (player) return player;
+
+    // <wistia-player> render trong shadow DOM → gắn box vào phần tử cha của nó
+    const wp = document.querySelector("wistia-player");
+    if (wp && wp.parentElement) {
+      const parent = wp.parentElement;
+      if (getComputedStyle(parent).position === "static") parent.style.position = "relative";
+      return parent;
+    }
+
+    return document.body;
   }
 
   function attachToPlayer() {
@@ -278,6 +286,7 @@
 
   // ── Tìm phụ đề trong DOM ─────────────────────────────────
   const IS_YOUTUBE = /(^|\.)youtube\.com$/.test(location.hostname);
+  const IS_TOP = window === window.top;
 
   // YouTube: ghép tất cả segment (phụ đề nhiều dòng), trả "" nếu không có phụ đề
   function findYouTubeCaption() {
@@ -288,6 +297,38 @@
       .map((s) => s.textContent.trim())
       .filter(Boolean)
       .join(" ");
+  }
+
+  // Wistia: phụ đề là các <p class="w-captions-line">, có thể nằm trong
+  // shadow DOM của <wistia-player> (embed mới) hoặc light DOM (embed cũ / iframe)
+  function wistiaRoots() {
+    const roots = [document];
+    document.querySelectorAll("wistia-player").forEach((p) => {
+      if (p.shadowRoot) roots.push(p.shadowRoot);
+    });
+    return roots;
+  }
+
+  function isWistiaPage() {
+    return !!document.querySelector("wistia-player, .w-vulcan-v2, .wistia_embed");
+  }
+
+  function findWistiaCaption() {
+    const lines = [];
+    for (const root of wistiaRoots()) {
+      root.querySelectorAll(".w-captions-line").forEach((l) => {
+        const t = l.textContent.trim();
+        if (t) lines.push(t);
+      });
+    }
+    return lines.join(" ");
+  }
+
+  // Player đã biết: trả text ("" = đang không có phụ đề); null = không nhận ra player
+  function findKnownPlayerCaption() {
+    if (IS_YOUTUBE) return findYouTubeCaption();
+    if (isWistiaPage()) return findWistiaCaption();
+    return null;
   }
 
   function findSubtitleText() {
@@ -307,12 +348,24 @@
   // ── Anthropic Academy: Observer trên shadow DOM ───────────
   function watchWistiaPlayer() {
     // Wistia nhúng caption vào div động, quan sát toàn body
+    const opts = { childList: true, subtree: true, characterData: true };
+    const observedRoots = new WeakSet();
+
     const observer = new MutationObserver(() => {
-      if (IS_YOUTUBE) {
-        const yt = findYouTubeCaption();
-        if (yt) {
+      // MutationObserver trên body không thấy thay đổi trong shadow DOM
+      document.querySelectorAll("wistia-player").forEach((p) => {
+        const r = p.shadowRoot;
+        if (r && !observedRoots.has(r)) {
+          observedRoots.add(r);
+          observer.observe(r, opts);
+        }
+      });
+
+      const known = findKnownPlayerCaption();
+      if (known !== null) {
+        if (known) {
           attachToPlayer();
-          handleSubtitleText(yt);
+          handleSubtitleText(known);
         } else if (lastOriginal) {
           lastOriginal = "";
           clearTimeout(translateTimer);
@@ -320,6 +373,9 @@
         }
         return;
       }
+
+      // Selector chung dễ bắt nhầm — không chạy trong iframe quảng cáo/embed lạ
+      if (!IS_TOP) return;
       const text = findSubtitleText();
       if (text) handleSubtitleText(text);
       else {
@@ -332,11 +388,7 @@
       }
     });
 
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      characterData: true,
-    });
+    observer.observe(document.body, opts);
   }
 
   function getNearbyCaption(videoEl) {
