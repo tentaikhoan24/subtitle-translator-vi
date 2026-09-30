@@ -88,8 +88,41 @@
   // riêng <wistia-player> (shadow DOM) thì box nằm ở cha nhưng canh theo player.
   let anchorEl = null;
 
+  // document.fullscreenElement bị "retarget" về shadow host (vd <wistia-player>);
+  // đi xuyên shadow DOM tới phần tử fullscreen thật để box được render
+  function fullscreenRoot() {
+    let fs = document.fullscreenElement;
+    if (!fs) return null;
+    while (fs.shadowRoot?.fullscreenElement && fs.shadowRoot.fullscreenElement !== fs) {
+      fs = fs.shadowRoot.fullscreenElement;
+    }
+    if (fs.shadowRoot) {
+      // Chính shadow host fullscreen → con của host ở light DOM không hiện, gắn vào bên trong shadow
+      const inner = [...fs.shadowRoot.children].find(
+        (c) => !["STYLE", "LINK", "SCRIPT"].includes(c.tagName)
+      );
+      if (inner) return inner;
+    }
+    return fs;
+  }
+
+  // CSS của content script không áp vào shadow DOM → chèn bản sao content.css
+  let cssTextPromise = null;
+  function ensureShadowStyle() {
+    const root = translationBox.getRootNode();
+    if (!root.host || root.querySelector("style[data-sttrans]")) return;
+    const style = document.createElement("style");
+    style.setAttribute("data-sttrans", "true");
+    root.appendChild(style);
+    cssTextPromise ||= fetch(chrome.runtime.getURL("content.css"))
+      .then((r) => r.text())
+      .catch(() => "");
+    cssTextPromise.then((t) => (style.textContent = t));
+  }
+
   function getPlayerRoot() {
-    if (document.fullscreenElement) return document.fullscreenElement;
+    const fs = fullscreenRoot();
+    if (fs) return fs;
 
     const player = document.querySelector(".jwplayer, #movie_player, .w-vulcan-v2");
     if (player) return player;
@@ -115,6 +148,7 @@
 
     if (translationBox.parentElement !== root || anchorEl !== anchor) {
       root.appendChild(translationBox);
+      ensureShadowStyle();
       anchorObserver.disconnect();
       anchorEl = anchor;
       if (anchor !== root) {
